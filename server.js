@@ -194,8 +194,16 @@ app.post('/webhook', upload.any(), async (req, res) => {
     } else if (fields[FIELD_PHOTO_UPLOAD]) {
       const urls = fields[FIELD_PHOTO_UPLOAD].split(',').map((u) => u.trim()).filter(Boolean);
       for (const url of urls) {
-        const buffer = await downloadFile(url);
-        photoBuffers.push({ buffer, name: url.split('/').pop() });
+        if (!/^https?:\/\//i.test(url)) {
+          console.warn('Skipping non-URL value in photo field:', url);
+          continue;
+        }
+        try {
+          const buffer = await downloadFile(url);
+          photoBuffers.push({ buffer, name: url.split('/').pop() });
+        } catch (downloadErr) {
+          console.error('Failed to download photo from URL:', url, downloadErr.message);
+        }
       }
     }
 
