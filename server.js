@@ -55,13 +55,13 @@ async function findOrCreateFolder(drive, name, parentId) {
   return created.data.id;
 }
 
-async function uploadToDrivePath(buffer, filename, mimeType, { doctorName, caseType }) {
+async function uploadToDrivePath(buffer, filename, mimeType, { doctorName, patientName }) {
   const drive = getDriveClient();
   const doctorFolderId = await findOrCreateFolder(drive, doctorName || 'Unspecified Doctor', GDRIVE_ROOT_FOLDER_ID);
-  const caseFolderId = await findOrCreateFolder(drive, caseType || 'Unspecified Case Type', doctorFolderId);
+  const patientFolderId = await findOrCreateFolder(drive, patientName || 'Unspecified Patient', doctorFolderId);
 
   const monthLabel = new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' }); // e.g. "July 2026"
-  const monthFolderId = await findOrCreateFolder(drive, monthLabel, caseFolderId);
+  const monthFolderId = await findOrCreateFolder(drive, monthLabel, patientFolderId);
 
   const { Readable } = require('stream');
   const stream = Readable.from(buffer);
@@ -197,8 +197,9 @@ app.post('/webhook', upload.any(), async (req, res) => {
     for (const photo of photoBuffers) {
       const watermarked = await watermarkImage(photo.buffer);
       const safePatient = patientName.replace(/[^a-z0-9]+/gi, '_');
-      const filename = `${safePatient}_${Date.now()}.jpg`;
-      const uploaded = await uploadToDrivePath(watermarked, filename, 'image/jpeg', { doctorName, caseType });
+      const safeCaseType = (caseType || 'case').replace(/[^a-z0-9]+/gi, '_');
+      const filename = `${safePatient}_${safeCaseType}_${Date.now()}.jpg`;
+      const uploaded = await uploadToDrivePath(watermarked, filename, 'image/jpeg', { doctorName, patientName });
       results.push(uploaded);
     }
 

@@ -5,8 +5,10 @@ Receives a Jotform submission webhook, watermarks the uploaded photo
 and files it into Google Drive under:
 
 ```
-Root Folder / Doctor Name / Type of Case / July 2026 / patient_name_TIMESTAMP.jpg
+Root Folder / Doctor Name / Patient Name / July 2026 / patient_casetype_TIMESTAMP.jpg
 ```
+
+(Type of Case is no longer a separate folder — it's now baked into the filename itself, e.g. `John_Doe_CompleteDenture_1732982331000.jpg`.)
 
 ---
 
