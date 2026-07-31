@@ -143,11 +143,15 @@ async function watermarkImage(photoBuffer) {
 
 // ---------- Helpers to parse Jotform's payload ----------
 
-// Jotform sends a "pretty" field like: "Patient Name:John Doe; Doctor Name:Dr. Smith; Upload photo:https://www.jotform.com/uploads/.../photo.jpg"
+// Jotform sends a "pretty" field like:
+// "Patient Name:John Doe, Doctor Name:Dr. Smith, Upload photo:https://www.jotform.com/uploads/.../photo.jpg"
+// Fields are comma-separated, so we split on ", " but only right before what looks like
+// the start of the next "Label:" pair, so values that themselves contain commas survive intact.
 function parsePretty(pretty) {
   const result = {};
   if (!pretty) return result;
-  pretty.split(';').forEach((pair) => {
+  const parts = pretty.split(/,\s+(?=[^,:]+:)/);
+  parts.forEach((pair) => {
     const idx = pair.indexOf(':');
     if (idx === -1) return;
     const key = pair.slice(0, idx).trim();
@@ -165,12 +169,19 @@ async function downloadFile(url) {
 // ---------- Webhook route ----------
 
 app.post('/webhook', upload.any(), async (req, res) => {
+  console.log('--- Incoming webhook hit ---');
+  console.log('Query params:', req.query);
+  console.log('Body keys:', Object.keys(req.body || {}));
+  console.log('Files received:', (req.files || []).map((f) => f.originalname));
   try {
     if (WEBHOOK_SECRET && req.query.secret !== WEBHOOK_SECRET) {
+      console.warn('Secret mismatch. Expected vs received differ.');
       return res.status(401).send('Invalid secret');
     }
 
     const fields = parsePretty(req.body.pretty);
+    console.log('Raw pretty string:', req.body.pretty);
+    console.log('Parsed fields:', fields);
     const patientName = fields[FIELD_PATIENT_NAME] || 'Unknown Patient';
     const doctorName = fields[FIELD_DOCTOR_NAME] || 'Unspecified Doctor';
     const caseType = fields[FIELD_CASE_TYPE] || 'Unspecified Case Type';
